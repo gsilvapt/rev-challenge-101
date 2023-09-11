@@ -1,0 +1,49 @@
+name: build
+
+on:
+  pull_request:
+  release:
+    types: [created]
+
+jobs:
+  test:
+    name: Lint
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac  # v4.0.0
+      - name: Setup | Rust
+        uses: ATiltedTree/setup-rust@749afc283f2b846eb90a670e757de9da4da091f7  # v1.0.5
+        with:
+          rust-version: stable
+          components: clippy
+      - name: Build | Lint
+        run: |
+          cargo clippy
+          cargo check
+
+  build:
+    name: ${{ matrix.platform.os_name}}
+    if: github.event_name != 'pull_request'
+    runs-on: $${ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os_name: Linux-x86_64
+            os: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+          - os_name: macOS-x86_64
+            target: x86_64-apple-darwin
+            bin: figctl-darwin-amd64
+          - os_name: macOS-aarch64
+            os: macOS-latest
+            target: aarch64-apple-darwin
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac  # v4.0.0
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@749afc283f2b846eb90a670e757de9da4da091f7  # v1.0.5
+      - name: Build binary
+        run: cargo build -target =${{ matrix.platform.target }}
